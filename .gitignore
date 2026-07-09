@@ -1,0 +1,37 @@
+# ---- Node / Expo app (app/) ----
+**/node_modules/
+app/.expo/
+app/dist/
+app/web-build/
+app/android/
+app/ios/
+app/build-output/
+app/modules/**/android/build/
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# ---- Laravel backend (api/) ----
+api/vendor/
+api/.env
+api/.env.backup
+api/.env.production
+api/.phpunit.result.cache
+api/storage/logs/*.log
+api/storage/framework/cache/data/*
+api/storage/framework/sessions/*
+api/storage/framework/testing/*
+api/storage/framework/views/*.php
+api/bootstrap/cache/*.php
+api/database/*.sqlite
+api/public/storage
+api/public/hot
+api/auth.json
+
+# ---- OS / editor ----
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/
