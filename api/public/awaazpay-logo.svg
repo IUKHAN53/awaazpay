@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="196" height="48" viewBox="0 0 196 48">
+  <rect x="2" y="8" width="32" height="32" rx="8" fill="#1a2e6e"/>
+  <g fill="#f0b429">
+    <rect x="8" y="21.5" width="2.6" height="5" rx="1.3"/>
+    <rect x="12.5" y="18" width="2.6" height="12" rx="1.3"/>
+    <rect x="17" y="15" width="2.6" height="18" rx="1.3"/>
+    <rect x="21.5" y="18.5" width="2.6" height="11" rx="1.3"/>
+    <rect x="26" y="22" width="2.6" height="4" rx="1.3"/>
+  </g>
+  <text x="44" y="31" font-family="'Segoe UI', Arial, sans-serif" font-size="21" font-weight="800" letter-spacing="-0.5">
+    <tspan fill="#1a2e6e">Awaaz</tspan><tspan fill="#c98f10">Pay</tspan>
+  </text>
+</svg>

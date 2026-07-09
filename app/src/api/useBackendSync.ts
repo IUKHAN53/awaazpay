@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useApp } from '../data/store';
 import { backend } from './client';
+import { toast } from '../components/Toast';
 
 const TPL_VERSION_KEY = 'awaazpay.tpl_version';
 
@@ -25,9 +26,12 @@ export function useBackendSync() {
       // 1. Register as owner once.
       try {
         if (!(await backend.isRegistered())) {
-          await backend.registerOwner('My Shop', null);
+          const shop = await backend.registerOwner('My Shop', null);
+          toast.success('Cloud connected', `Shop code ${shop.join_code}`);
         }
-      } catch {}
+      } catch {
+        // Offline is fine — the app works fully without the backend. Stay quiet.
+      }
 
       // 2. Template sync.
       try {

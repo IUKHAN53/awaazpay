@@ -28,6 +28,10 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->brandName('AwaazPay')
+            ->brandLogo(asset('awaazpay-logo.svg'))
+            ->brandLogoHeight('2.2rem')
+            ->favicon(asset('awaazpay-mark.svg'))
             ->colors([
                 'primary' => Color::Amber,
             ])
