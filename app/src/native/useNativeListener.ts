@@ -17,7 +17,7 @@ function toSource(s: string): PaymentSource {
  * No-ops entirely when the native module is unavailable (Expo Go / iOS).
  */
 export function useNativeListener() {
-  const { settings, addPayment, setStatus, ready } = useApp();
+  const { settings, addPayment, setStatus, ready, templatesJson } = useApp();
 
   // Drain pending + subscribe to live events
   useEffect(() => {
@@ -53,7 +53,7 @@ export function useNativeListener() {
         settings.repeatCount,
         settings.volume,
         sources,
-        null,
+        templatesJson, // server-delivered rules, or null → bundled defaults
         settings.extraSenders,
       );
     } catch {}
@@ -64,6 +64,7 @@ export function useNativeListener() {
     settings.volume,
     settings.sources,
     settings.extraSenders,
+    templatesJson,
   ]);
 
   // Reflect real permission state in the UI status

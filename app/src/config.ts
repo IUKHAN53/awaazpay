@@ -10,4 +10,4 @@ export const API_BASE_URL = 'https://awaazpay.iukhan.tech/api';
  * project (google-services.json + FCM_SERVER_KEY) are in place to enable
  * staff/multi-device alerts and template sync.
  */
-export const BACKEND_ENABLED = false;
+export const BACKEND_ENABLED = true;

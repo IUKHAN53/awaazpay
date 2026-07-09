@@ -1,25 +1,36 @@
-import React from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, layout, radius } from '../theme/tokens';
 import { useApp } from '../data/store';
 import { Icon } from '../components/Icon';
 import { toast } from '../components/Toast';
+import { backend } from '../api/client';
 
 export function StaffScreen({ onBack }: { onBack: () => void }) {
   const { staff, addStaff, removeStaff } = useApp();
   const insets = useSafeAreaInsets();
+  const [joinCode, setJoinCode] = useState<string | null>(null);
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
 
-  const inviteByPhone = () => {
-    const add = (name: string) => {
-      addStaff(name, 'staff');
-      toast.success('Staff invited', `${name}'s phone will announce payments too`);
-    };
-    // Placeholder until backend invites land — adds a demo member.
-    if (Alert.prompt) {
-      Alert.prompt('Invite by phone number', 'Enter staff member name', (name) => name && add(name));
-    } else {
-      add(`Staff ${staff.length + 1}`);
+  // Show the shop's join code (staff enter it to join and receive alerts).
+  useEffect(() => {
+    if (!backend.enabled) return;
+    backend.getShop().then((s) => s && setJoinCode(s.join_code)).catch(() => {});
+  }, []);
+
+  const inviteByCode = async () => {
+    if (!backend.enabled) {
+      addStaff(`Staff ${staff.length + 1}`, 'staff');
+      toast.success('Staff invited', 'Their phone will announce payments too');
+      return;
+    }
+    try {
+      const { code } = await backend.createInvite();
+      setInviteCode(code);
+      toast.success('Invite code created', `Share "${code}" — valid for 24 hours`);
+    } catch {
+      toast.error('Could not create invite', 'Check your connection and try again.');
     }
   };
 
@@ -42,24 +53,32 @@ export function StaffScreen({ onBack }: { onBack: () => void }) {
       </View>
 
       <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
-        {/* QR invite card */}
+        {/* Shop join code — staff install the app and enter this to join. */}
         <View style={styles.qrCard}>
-          <View style={styles.qrBox}>
-            <Text style={styles.qrPlaceholder}>QR code{'\n'}(shop invite)</Text>
-          </View>
-          <Text style={styles.qrHint}>Ask them to scan with their phone</Text>
+          <Text style={styles.qrLabel}>YOUR SHOP CODE</Text>
+          <Text style={styles.joinCode}>{joinCode ?? '••••••'}</Text>
+          <Text style={styles.qrHint}>
+            Staff install AwaazPay, choose “Join a shop”, and enter this code.
+          </Text>
         </View>
 
         <View style={styles.orRow}>
           <View style={styles.orLine} />
-          <Text style={styles.orText}>OR</Text>
+          <Text style={styles.orText}>OR A ONE-TIME CODE</Text>
           <View style={styles.orLine} />
         </View>
 
-        <Pressable style={styles.phoneBtn} onPress={inviteByPhone}>
+        <Pressable style={styles.phoneBtn} onPress={inviteByCode}>
           <Icon name="invite" size={20} color="#fff" />
-          <Text style={styles.phoneBtnLabel}>Invite by phone number</Text>
+          <Text style={styles.phoneBtnLabel}>Create invite code</Text>
         </Pressable>
+
+        {inviteCode && (
+          <View style={styles.inviteCard}>
+            <Text style={styles.inviteLabel}>One-time code (24h)</Text>
+            <Text style={styles.inviteCode}>{inviteCode}</Text>
+          </View>
+        )}
 
         {staff.map((m) => (
           <View key={m.id} style={styles.memberCard}>
@@ -133,9 +152,40 @@ const styles = StyleSheet.create({
     borderRadius: radius.xl,
     padding: 22,
     alignItems: 'center',
-    gap: 14,
+    gap: 10,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  qrLabel: {
+    fontFamily: fonts.semibold,
+    fontSize: 12,
+    letterSpacing: 1,
+    color: colors.faint,
+  },
+  joinCode: {
+    fontFamily: fonts.extrabold,
+    fontSize: 40,
+    letterSpacing: 4,
+    color: colors.navy,
+  },
+  inviteCard: {
+    width: '100%',
+    backgroundColor: colors.goldTint,
+    borderRadius: radius.lg,
+    padding: 18,
+    alignItems: 'center',
+    gap: 4,
+  },
+  inviteLabel: {
+    fontFamily: fonts.semibold,
+    fontSize: 12,
+    color: colors.goldDark,
+  },
+  inviteCode: {
+    fontFamily: fonts.extrabold,
+    fontSize: 28,
+    letterSpacing: 3,
+    color: colors.navy,
   },
   qrBox: {
     width: 180,

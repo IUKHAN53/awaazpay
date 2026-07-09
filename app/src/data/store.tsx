@@ -18,10 +18,12 @@ import {
   StaffMember,
 } from './types';
 import { announcementEnglish, announcementUrdu } from './urduNumbers';
+import { backend } from '../api/client';
 
 const SETTINGS_KEY = 'awaazpay.settings.v1';
 const PAYMENTS_KEY = 'awaazpay.payments.v1';
 const STAFF_KEY = 'awaazpay.staff.v1';
+const TEMPLATES_KEY = 'awaazpay.templatesJson';
 
 const DEFAULT_SETTINGS: Settings = {
   language: 'ur',
@@ -41,10 +43,13 @@ interface AppState {
   status: ListenerStatus;
   /** Payment currently being announced (drives the full-screen moment) */
   announcing: Payment | null;
+  /** Server-delivered parser templates JSON (null = use bundled defaults). */
+  templatesJson: string | null;
+  setTemplatesJson: (json: string) => void;
   updateSettings: (patch: Partial<Settings>) => void;
   addPayment: (
     p: Omit<Payment, 'id' | 'receivedAt'>,
-    opts?: { silent?: boolean; receivedAt?: number; showOverlay?: boolean },
+    opts?: { silent?: boolean; receivedAt?: number; showOverlay?: boolean; fromBackend?: boolean },
   ) => void;
   dismissAnnouncement: () => void;
   repeatAnnouncement: () => void;
@@ -63,22 +68,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [status, setStatus] = useState<ListenerStatus>('listening');
   const [announcing, setAnnouncing] = useState<Payment | null>(null);
+  const [templatesJson, setTemplatesJsonState] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
-        const [s, p, st] = await Promise.all([
+        const [s, p, st, tpl] = await Promise.all([
           AsyncStorage.getItem(SETTINGS_KEY),
           AsyncStorage.getItem(PAYMENTS_KEY),
           AsyncStorage.getItem(STAFF_KEY),
+          AsyncStorage.getItem(TEMPLATES_KEY),
         ]);
         if (s) setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(s) });
         if (p) setPayments(JSON.parse(p));
         if (st) setStaff(JSON.parse(st));
+        if (tpl) setTemplatesJsonState(tpl);
       } finally {
         setReady(true);
       }
     })();
+  }, []);
+
+  const setTemplatesJson = useCallback((json: string) => {
+    setTemplatesJsonState(json);
+    AsyncStorage.setItem(TEMPLATES_KEY, json).catch(() => {});
   }, []);
 
   const persistSettings = useCallback((next: Settings) => {
@@ -111,7 +124,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addPayment = useCallback(
     (
       p: Omit<Payment, 'id' | 'receivedAt'>,
-      opts?: { silent?: boolean; receivedAt?: number; showOverlay?: boolean },
+      opts?: { silent?: boolean; receivedAt?: number; showOverlay?: boolean; fromBackend?: boolean },
     ) => {
       const payment: Payment = {
         ...p,
@@ -129,6 +142,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         speak(payment, settings.repeatCount);
       } else if (opts?.showOverlay) {
         setAnnouncing(payment);
+      }
+      // Sync to backend (dashboard + fan-out to staff). Fire-and-forget; never
+      // blocks local behaviour. Skipped for payments that arrived FROM the
+      // backend to avoid a loop.
+      if (backend.enabled && !opts?.fromBackend) {
+        backend.syncPayment(payment).catch(() => {});
       }
     },
     [speak, settings.repeatCount],
@@ -187,6 +206,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       staff,
       status,
       announcing,
+      templatesJson,
+      setTemplatesJson,
       updateSettings,
       addPayment,
       dismissAnnouncement,
@@ -203,6 +224,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       staff,
       status,
       announcing,
+      templatesJson,
+      setTemplatesJson,
       updateSettings,
       addPayment,
       dismissAnnouncement,

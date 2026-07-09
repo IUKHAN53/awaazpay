@@ -29,6 +29,7 @@ import { ErrorScreen } from './src/screens/ErrorScreen';
 import { IncomingPaymentOverlay } from './src/screens/IncomingPaymentOverlay';
 import { PaymentSource } from './src/data/types';
 import { useNativeListener } from './src/native/useNativeListener';
+import { useBackendSync } from './src/api/useBackendSync';
 import ToastRoot from 'react-native-toast-message';
 import { toastConfig } from './src/components/Toast';
 
@@ -61,6 +62,7 @@ function Root() {
   const [tab, setTab] = useState<Tab>('home');
   const [view, setView] = useState<View_>('main');
   useNativeListener();
+  useBackendSync();
 
   // Android hardware back: navigate within the app instead of exiting.
   useEffect(() => {
