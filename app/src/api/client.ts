@@ -26,23 +26,38 @@ interface ReqOpts {
   auth?: boolean;
 }
 
+/**
+ * Uses XMLHttpRequest (React Native's native networking) rather than the global
+ * fetch — Expo SDK 57's fetch (expo/fetch) throws on some Android runtimes, so
+ * XHR is the portable transport.
+ */
 async function req<T>(path: string, opts: ReqOpts = {}): Promise<T> {
   const { method = 'GET', body, auth = true } = opts;
-  const headers: Record<string, string> = { Accept: 'application/json' };
-  if (body) headers['Content-Type'] = 'application/json';
-  if (auth) {
-    const t = await getToken();
-    if (t) headers.Authorization = `Bearer ${t}`;
-  }
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
+  const token = auth ? await getToken() : null;
+
+  return new Promise<T>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open(method, `${API_BASE_URL}${path}`);
+    xhr.timeout = 15000;
+    xhr.setRequestHeader('Accept', 'application/json');
+    if (body) xhr.setRequestHeader('Content-Type', 'application/json');
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(xhr.responseText ? (JSON.parse(xhr.responseText) as T) : (null as T));
+        } catch (e) {
+          reject(e);
+        }
+      } else {
+        reject(new Error(`API ${method} ${path} → ${xhr.status}`));
+      }
+    };
+    xhr.onerror = () => reject(new Error(`API ${method} ${path} network error`));
+    xhr.ontimeout = () => reject(new Error(`API ${method} ${path} timeout`));
+    xhr.send(body ? JSON.stringify(body) : null);
   });
-  if (!res.ok) {
-    throw new Error(`API ${method} ${path} → ${res.status}`);
-  }
-  return res.status === 204 ? (null as T) : ((await res.json()) as T);
 }
 
 export interface TemplateResponse {
