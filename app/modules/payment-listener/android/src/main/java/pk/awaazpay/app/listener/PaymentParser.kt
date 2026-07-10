@@ -70,6 +70,7 @@ class PaymentParser(templatesJson: String? = null) {
   /** Parse a notification from [packageName] with combined [text]. */
   fun parseNotification(packageName: String, text: String): ParsedPayment? {
     val template = templates.firstOrNull { packageName in it.packages } ?: return null
+    if (isOutgoingOrFailed(text)) return null // never announce sent/failed/refunded
     return matchPatterns(template, text)
   }
 
@@ -88,11 +89,19 @@ class PaymentParser(templatesJson: String? = null) {
    * untrusted number is dropped before any parsing so it can never announce.
    */
   fun parseSms(sender: String, body: String): ParsedPayment? {
+    if (isOutgoingOrFailed(body)) return null // never announce sent/failed/refunded
     val template = templates.firstOrNull { t ->
       SenderPolicy.isTrusted(sender, allowlistFor(t))
     } ?: return null
     return matchPatterns(template, body)
   }
+
+  /**
+   * True for OUTGOING or unsuccessful transactions — a soundbox only announces
+   * money coming IN. Guards against announcing "sent to", "debited", "refunded",
+   * "could not be processed", etc. (seen in real Easypaisa/JazzCash alerts).
+   */
+  private fun isOutgoingOrFailed(text: String): Boolean = OUTGOING_OR_FAILED.containsMatchIn(text)
 
   private fun matchPatterns(template: Template, text: String): ParsedPayment? {
     for (p in template.patterns) {
@@ -136,7 +145,7 @@ class PaymentParser(templatesJson: String? = null) {
       val o: JSONObject = getJSONObject(i)
       try {
         Pattern(
-          regex = Regex(o.getString("regex"), RegexOption.IGNORE_CASE),
+          regex = Regex(o.getString("regex"), setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)),
           amountGroup = o.optInt("amountGroup", 1),
           payerGroup = o.optInt("payerGroup", 0),
         )
@@ -147,10 +156,19 @@ class PaymentParser(templatesJson: String? = null) {
   }
 
   companion object {
+    /** Matches outgoing / failed / reversed transactions — never announce these. */
+    private val OUTGOING_OR_FAILED = Regex(
+      "sent to|has been sent|debited|payment sent|sent successfully|could not be processed|" +
+        "refunded|unsuccessful|declined|reversed|withdrawn|transferred to",
+      RegexOption.IGNORE_CASE,
+    )
+
     /**
-     * Best-guess defaults — MUST be validated against real notification/SMS
-     * text captured from live Easypaisa/JazzCash apps, then moved to the
-     * server-delivered template endpoint.
+     * Tuned against REAL Easypaisa Raast notification wording (2026-07):
+     *   "An amount of Rs. 200.0 has been ... in your Easypaisa account from
+     *    NAME ... via Raast Payment on ... Trx ID: ..."
+     * Incoming keywords: received / credited / deposited (outgoing is guarded
+     * out separately). Server-delivered templates override these.
      */
     const val DEFAULT_TEMPLATES = """
       [
@@ -159,10 +177,10 @@ class PaymentParser(templatesJson: String? = null) {
           "packages": ["pk.com.telenor.phoenix", "com.telenor.phoenix", "pk.com.telenor.easypaisa"],
           "senders": ["Easypaisa", "easypaisa", "3737"],
           "patterns": [
-            { "regex": "(?:received|credited|payment).{0,25}?(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?.{0,25}?from\\s+([A-Za-z0-9\\u0600-\\u06FF +()*-]+?)(?:\\.|,|$)", "amountGroup": 1, "payerGroup": 2 },
-            { "regex": "(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?.{0,30}?from\\s+([A-Za-z0-9\\u0600-\\u06FF +()*-]+?)(?:\\.|,|$)", "amountGroup": 1, "payerGroup": 2 },
-            { "regex": "(?:received|credited|deposited).{0,30}?(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?", "amountGroup": 1, "payerGroup": 0 },
-            { "regex": "(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?.{0,30}?(?:received|credited|deposited)", "amountGroup": 1, "payerGroup": 0 }
+            { "regex": "(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?\\s+(?:has\\s+been\\s+)?(?:received|credited|deposited).{0,70}?from\\s+([A-Za-z\\u0600-\\u06FF][A-Za-z\\u0600-\\u06FF ]{1,40}?)(?:\\s+in\\s|\\s+via|\\s+on\\s|\\s+account|\\.|,|$)", "amountGroup": 1, "payerGroup": 2 },
+            { "regex": "(?:received|credited|deposited).{0,25}?(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?.{0,60}?from\\s+([A-Za-z\\u0600-\\u06FF][A-Za-z\\u0600-\\u06FF ]{1,40}?)(?:\\s+in\\s|\\s+via|\\s+on\\s|\\.|,|$)", "amountGroup": 1, "payerGroup": 2 },
+            { "regex": "(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?\\s+(?:has\\s+been\\s+)?(?:received|credited|deposited)", "amountGroup": 1, "payerGroup": 0 },
+            { "regex": "(?:received|credited|deposited).{0,60}?(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?", "amountGroup": 1, "payerGroup": 0 }
           ]
         },
         {
@@ -170,10 +188,10 @@ class PaymentParser(templatesJson: String? = null) {
           "packages": ["com.techlogix.mobilinkcustomer", "com.jazzcash.consumer", "com.jazz.jazzcash"],
           "senders": ["JazzCash", "Jazz Cash", "8558"],
           "patterns": [
-            { "regex": "(?:received|credited|payment).{0,25}?(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?.{0,25}?from\\s+([A-Za-z0-9\\u0600-\\u06FF +()*-]+?)(?:\\.|,|$)", "amountGroup": 1, "payerGroup": 2 },
-            { "regex": "(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?.{0,30}?from\\s+([A-Za-z0-9\\u0600-\\u06FF +()*-]+?)(?:\\.|,|$)", "amountGroup": 1, "payerGroup": 2 },
-            { "regex": "(?:received|credited|deposited).{0,30}?(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?", "amountGroup": 1, "payerGroup": 0 },
-            { "regex": "(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?.{0,30}?(?:received|credited|deposited)", "amountGroup": 1, "payerGroup": 0 }
+            { "regex": "(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?\\s+(?:has\\s+been\\s+)?(?:received|credited|deposited).{0,70}?from\\s+([A-Za-z\\u0600-\\u06FF][A-Za-z\\u0600-\\u06FF ]{1,40}?)(?:\\s+in\\s|\\s+via|\\s+on\\s|\\s+account|\\.|,|$)", "amountGroup": 1, "payerGroup": 2 },
+            { "regex": "(?:received|credited|deposited).{0,25}?(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?.{0,60}?from\\s+([A-Za-z\\u0600-\\u06FF][A-Za-z\\u0600-\\u06FF ]{1,40}?)(?:\\s+in\\s|\\s+via|\\s+on\\s|\\.|,|$)", "amountGroup": 1, "payerGroup": 2 },
+            { "regex": "(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?\\s+(?:has\\s+been\\s+)?(?:received|credited|deposited)", "amountGroup": 1, "payerGroup": 0 },
+            { "regex": "(?:received|credited|deposited).{0,60}?(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?", "amountGroup": 1, "payerGroup": 0 }
           ]
         },
         {
