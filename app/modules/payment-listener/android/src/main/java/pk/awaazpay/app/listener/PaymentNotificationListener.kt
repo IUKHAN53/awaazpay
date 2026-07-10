@@ -19,6 +19,9 @@ class PaymentNotificationListener : NotificationListenerService() {
   companion object {
     private const val TAG = "AwaazPayListener"
 
+    /** True once Android has bound + connected this listener service. */
+    @Volatile var connected: Boolean = false
+
     /** Set by PaymentListenerModule while the RN runtime is alive. */
     @Volatile var jsEmitter: ((source: String, amount: Long, payer: String, receivedAt: Long) -> Boolean)? = null
 
@@ -51,14 +54,10 @@ class PaymentNotificationListener : NotificationListenerService() {
     }
   }
 
-  private lateinit var parser: PaymentParser
-
   override fun onCreate() {
     super.onCreate()
-    val config = PaymentStore.loadConfig(this)
-    parser = PaymentParser(config.templatesJson)
     Announcer.init(this)
-    Log.i(TAG, "Listener created, watching: ${parser.watchedPackages()}")
+    Log.i(TAG, "Listener created")
   }
 
   override fun onNotificationPosted(sbn: StatusBarNotification) {
@@ -73,24 +72,42 @@ class PaymentNotificationListener : NotificationListenerService() {
   private fun handle(sbn: StatusBarNotification) {
     val pkg = sbn.packageName ?: return
     if (pkg == packageName) return // ignore our own notifications
-    Log.d(TAG, "Notification posted by: $pkg") // delivery trace (all packages)
-    if (pkg !in parser.watchedPackages()) return
 
     val extras = sbn.notification?.extras ?: return
     val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: ""
     val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
     val big = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString() ?: ""
-    val combined = listOf(title, if (big.length > text.length) big else text)
-      .filter { it.isNotBlank() }
-      .joinToString(". ")
-    if (combined.isBlank()) return
+    val body = if (big.length > text.length) big else text
+    val combined = listOf(title, body).filter { it.isNotBlank() }.joinToString(". ")
 
-    // Shared pipeline: parse → filter → dedupe → announce → emit/queue
-    process(this, pkg, combined)
+    // Run the payment pipeline (no-ops for non-payment / unwatched packages).
+    val payment = if (combined.isBlank()) null else process(this, pkg, combined)
+
+    // Diagnostics: record EVERY notification we see so the user/dev can find the
+    // real wallet package + wording and confirm the listener is actually alive.
+    val parser = PaymentParser(PaymentStore.loadConfig(this).templatesJson)
+    NotificationDebug.record(
+      NotificationDebug.Seen(
+        pkg = pkg,
+        title = title,
+        text = body,
+        ts = System.currentTimeMillis(),
+        watched = pkg in parser.watchedPackages(),
+        matched = payment != null,
+      ),
+    )
+    Log.d(TAG, "seen pkg=$pkg matched=${payment != null}")
   }
 
   override fun onListenerConnected() {
     super.onListenerConnected()
+    connected = true
     Log.i(TAG, "Listener connected")
+  }
+
+  override fun onListenerDisconnected() {
+    super.onListenerDisconnected()
+    connected = false
+    Log.w(TAG, "Listener disconnected")
   }
 }

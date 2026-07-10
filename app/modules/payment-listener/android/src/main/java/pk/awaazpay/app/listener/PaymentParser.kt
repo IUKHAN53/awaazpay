@@ -156,29 +156,33 @@ class PaymentParser(templatesJson: String? = null) {
       [
         {
           "source": "easypaisa",
-          "packages": ["pk.com.telenor.phoenix"],
-          "senders": ["Easypaisa", "3737"],
+          "packages": ["pk.com.telenor.phoenix", "com.telenor.phoenix", "pk.com.telenor.easypaisa"],
+          "senders": ["Easypaisa", "easypaisa", "3737"],
           "patterns": [
-            { "regex": "(?:received|receive)\\s+(?:Rs|PKR)\\.?\\s*([\\d,]+)(?:\\.\\d+)?\\s+from\\s+([A-Za-z\\u0600-\\u06FF ]+?)(?:\\.|,|$)", "amountGroup": 1, "payerGroup": 2 },
-            { "regex": "(?:Rs|PKR)\\.?\\s*([\\d,]+)(?:\\.\\d+)?\\s+(?:received|credited)", "amountGroup": 1, "payerGroup": 0 }
+            { "regex": "(?:received|credited|payment).{0,25}?(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?.{0,25}?from\\s+([A-Za-z0-9\\u0600-\\u06FF +()*-]+?)(?:\\.|,|$)", "amountGroup": 1, "payerGroup": 2 },
+            { "regex": "(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?.{0,30}?from\\s+([A-Za-z0-9\\u0600-\\u06FF +()*-]+?)(?:\\.|,|$)", "amountGroup": 1, "payerGroup": 2 },
+            { "regex": "(?:received|credited|deposited).{0,30}?(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?", "amountGroup": 1, "payerGroup": 0 },
+            { "regex": "(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?.{0,30}?(?:received|credited|deposited)", "amountGroup": 1, "payerGroup": 0 }
           ]
         },
         {
           "source": "jazzcash",
-          "packages": ["com.techlogix.mobilinkcustomer", "com.jazzcash.consumer"],
-          "senders": ["JazzCash", "8558"],
+          "packages": ["com.techlogix.mobilinkcustomer", "com.jazzcash.consumer", "com.jazz.jazzcash"],
+          "senders": ["JazzCash", "Jazz Cash", "8558"],
           "patterns": [
-            { "regex": "(?:received|receive)\\s+(?:Rs|PKR)\\.?\\s*([\\d,]+)(?:\\.\\d+)?\\s+from\\s+([A-Za-z\\u0600-\\u06FF ]+?)(?:\\.|,|$)", "amountGroup": 1, "payerGroup": 2 },
-            { "regex": "(?:Rs|PKR)\\.?\\s*([\\d,]+)(?:\\.\\d+)?\\s+(?:received|credited)", "amountGroup": 1, "payerGroup": 0 }
+            { "regex": "(?:received|credited|payment).{0,25}?(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?.{0,25}?from\\s+([A-Za-z0-9\\u0600-\\u06FF +()*-]+?)(?:\\.|,|$)", "amountGroup": 1, "payerGroup": 2 },
+            { "regex": "(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?.{0,30}?from\\s+([A-Za-z0-9\\u0600-\\u06FF +()*-]+?)(?:\\.|,|$)", "amountGroup": 1, "payerGroup": 2 },
+            { "regex": "(?:received|credited|deposited).{0,30}?(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?", "amountGroup": 1, "payerGroup": 0 },
+            { "regex": "(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?.{0,30}?(?:received|credited|deposited)", "amountGroup": 1, "payerGroup": 0 }
           ]
         },
         {
           "source": "bank",
           "packages": [],
-          "senders": ["Meezan Bank", "8079", "HBL", "4250"],
+          "senders": ["Meezan Bank", "8079", "HBL", "4250", "UBL", "MCB", "ABL", "Bank Alfalah"],
           "patterns": [
-            { "regex": "(?:credited|received).{0,40}?(?:Rs|PKR)\\.?\\s*([\\d,]+)(?:\\.\\d+)?", "amountGroup": 1, "payerGroup": 0 },
-            { "regex": "(?:Rs|PKR)\\.?\\s*([\\d,]+)(?:\\.\\d+)?.{0,40}?credited", "amountGroup": 1, "payerGroup": 0 }
+            { "regex": "(?:credited|received|deposited).{0,40}?(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?", "amountGroup": 1, "payerGroup": 0 },
+            { "regex": "(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?.{0,40}?(?:credited|received|deposited)", "amountGroup": 1, "payerGroup": 0 }
           ]
         }
       ]

@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.PowerManager
 import android.provider.Settings
+import android.service.notification.NotificationListenerService
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
@@ -85,6 +86,44 @@ class PaymentListenerModule : Module() {
     /** Whether the device TTS engine can speak Urdu. */
     Function("isUrduTtsAvailable") {
       Announcer.isUrduAvailable()
+    }
+
+    /** Whether Android has bound + connected our NotificationListenerService. */
+    Function("isListenerConnected") {
+      PaymentNotificationListener.connected
+    }
+
+    /**
+     * Force Android to (re)bind the listener. Fixes the common case where the
+     * service doesn't start receiving immediately after access is first granted
+     * (otherwise only an app/phone restart kicks it in).
+     */
+    Function("requestListenerRebind") {
+      try {
+        NotificationListenerService.requestRebind(
+          ComponentName(context, PaymentNotificationListener::class.java),
+        )
+      } catch (e: Exception) {
+        // best-effort
+      }
+    }
+
+    /** Recent notifications the listener saw (for the Diagnostics screen). */
+    Function("getSeenNotifications") {
+      NotificationDebug.list().map {
+        mapOf(
+          "pkg" to it.pkg,
+          "title" to it.title,
+          "text" to it.text,
+          "ts" to it.ts,
+          "watched" to it.watched,
+          "matched" to it.matched,
+        )
+      }
+    }
+
+    Function("clearSeenNotifications") {
+      NotificationDebug.clear()
     }
 
     /**

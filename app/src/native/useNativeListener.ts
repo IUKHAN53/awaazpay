@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { AppState } from 'react-native';
 import { PaymentListener } from '../../modules/payment-listener';
 import { useApp } from '../data/store';
 import { ListenerStatus, Payment, PaymentSource } from '../data/types';
@@ -67,7 +68,12 @@ export function useNativeListener() {
     templatesJson,
   ]);
 
-  // Reflect real permission state in the UI status
+  // Reflect real permission state in the UI status.
+  // Only NOTIFICATION ACCESS gates listening — the service reads notifications
+  // without a battery exemption (that only affects background reliability, so a
+  // missing exemption must NOT flip the app to a red "Not listening" state).
+  // Re-checks on foreground so granting access in Settings reflects instantly
+  // (no more "red until you restart the app").
   useEffect(() => {
     const listener = PaymentListener;
     if (!listener || !ready || !settings.onboarded) return;
@@ -76,15 +82,23 @@ export function useNativeListener() {
       try {
         if (!listener.isNotificationAccessGranted()) {
           status = 'notification-access-off';
-        } else if (!listener.isBatteryExempt()) {
-          status = 'battery-restricted';
+        } else if (!listener.isListenerConnected()) {
+          // Access granted but the service hasn't bound yet — nudge Android to
+          // (re)bind so it starts receiving without needing an app/phone restart.
+          listener.requestListenerRebind();
         }
       } catch {}
       setStatus(status);
     };
     check();
-    const id = setInterval(check, 30_000);
-    return () => clearInterval(id);
+    const id = setInterval(check, 15_000);
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s === 'active') check();
+    });
+    return () => {
+      clearInterval(id);
+      sub.remove();
+    };
   }, [ready, settings.onboarded, setStatus]);
 }
 
@@ -113,6 +127,42 @@ export const nativePermissions = {
   requestBatteryExemption: () => {
     try {
       PaymentListener?.requestBatteryExemption();
+    } catch {}
+  },
+};
+
+/** Diagnostics: is the listener bound + what has it seen. */
+export const diagnostics = {
+  available: !!PaymentListener,
+  isListenerConnected: (): boolean => {
+    try {
+      return PaymentListener?.isListenerConnected() ?? false;
+    } catch {
+      return false;
+    }
+  },
+  isBatteryExempt: (): boolean => {
+    try {
+      return PaymentListener?.isBatteryExempt() ?? false;
+    } catch {
+      return false;
+    }
+  },
+  seenNotifications: () => {
+    try {
+      return PaymentListener?.getSeenNotifications() ?? [];
+    } catch {
+      return [];
+    }
+  },
+  requestRebind: () => {
+    try {
+      PaymentListener?.requestListenerRebind();
+    } catch {}
+  },
+  clear: () => {
+    try {
+      PaymentListener?.clearSeenNotifications();
     } catch {}
   },
 };

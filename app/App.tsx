@@ -24,6 +24,7 @@ import { ReportsScreen } from './src/screens/ReportsScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { StaffScreen } from './src/screens/StaffScreen';
 import { TrustedSendersScreen } from './src/screens/TrustedSendersScreen';
+import { DiagnosticsScreen } from './src/screens/DiagnosticsScreen';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { ErrorScreen } from './src/screens/ErrorScreen';
 import { IncomingPaymentOverlay } from './src/screens/IncomingPaymentOverlay';
@@ -33,7 +34,7 @@ import { useBackendSync } from './src/api/useBackendSync';
 import ToastRoot from 'react-native-toast-message';
 import { toastConfig } from './src/components/Toast';
 
-type View_ = 'main' | 'settings' | 'staff' | 'trustedSenders';
+type View_ = 'main' | 'settings' | 'staff' | 'trustedSenders' | 'diagnostics';
 
 /** DEV ONLY — simulates an incoming payment until the native listener lands. */
 function DevSimulateButton() {
@@ -114,6 +115,7 @@ function Root() {
           onBack={() => setView('main')}
           onOpenStaff={() => setView('staff')}
           onOpenTrustedSenders={() => setView('trustedSenders')}
+          onOpenDiagnostics={() => setView('diagnostics')}
         />
       </>
     );
@@ -133,6 +135,15 @@ function Root() {
       <>
         <StatusBar style="light" />
         <TrustedSendersScreen onBack={() => setView('settings')} />
+      </>
+    );
+  }
+
+  if (view === 'diagnostics') {
+    return (
+      <>
+        <StatusBar style="light" />
+        <DiagnosticsScreen onBack={() => setView('settings')} />
       </>
     );
   }

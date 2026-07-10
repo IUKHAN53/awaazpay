@@ -12,10 +12,12 @@ export function SettingsScreen({
   onBack,
   onOpenStaff,
   onOpenTrustedSenders,
+  onOpenDiagnostics,
 }: {
   onBack: () => void;
   onOpenStaff: () => void;
   onOpenTrustedSenders: () => void;
+  onOpenDiagnostics: () => void;
 }) {
   const { settings, updateSettings, playTestAnnouncement } = useApp();
   const insets = useSafeAreaInsets();
@@ -212,6 +214,11 @@ export function SettingsScreen({
         <Pressable style={styles.linkCard} onPress={playTest}>
           <Icon name="speaker" size={22} color={colors.navy} />
           <Text style={styles.linkLabel}>Play a test announcement</Text>
+          <Icon name="chevron-right" size={22} color={colors.disabled} />
+        </Pressable>
+        <Pressable style={styles.linkCard} onPress={onOpenDiagnostics}>
+          <Icon name="listening" size={22} color={colors.navy} />
+          <Text style={styles.linkLabel}>Diagnostics — why isn't it hearing?</Text>
           <Icon name="chevron-right" size={22} color={colors.disabled} />
         </Pressable>
       </ScrollView>

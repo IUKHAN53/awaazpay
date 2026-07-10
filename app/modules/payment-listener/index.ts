@@ -7,6 +7,15 @@ export interface NativePaymentEvent {
   receivedAt: number;
 }
 
+export interface SeenNotification {
+  pkg: string;
+  title: string;
+  text: string;
+  ts: number;
+  watched: boolean;
+  matched: boolean;
+}
+
 type PaymentListenerEvents = {
   onPayment(event: NativePaymentEvent): void;
 };
@@ -29,6 +38,13 @@ declare class PaymentListenerModuleType extends NativeModule<PaymentListenerEven
   announceTest(language: string, volume: number): void;
   /** Feed text through the real notification pipeline; returns true if parsed. */
   simulateNotification(pkg: string, text: string): boolean;
+  /** Whether Android has bound + connected our NotificationListenerService. */
+  isListenerConnected(): boolean;
+  /** Force Android to (re)bind the listener after a fresh access grant. */
+  requestListenerRebind(): void;
+  /** Recent notifications the listener saw (diagnostics). */
+  getSeenNotifications(): SeenNotification[];
+  clearSeenNotifications(): void;
   /** False for personal mobile numbers / empty — UI blocks the add. */
   isAdmissibleSender(sender: string): boolean;
   /** Built-in official trusted senders per source (read-only). */
