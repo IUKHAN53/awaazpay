@@ -42,6 +42,8 @@ declare class PaymentListenerModuleType extends NativeModule<PaymentListenerEven
   isListenerConnected(): boolean;
   /** Force Android to (re)bind the listener after a fresh access grant. */
   requestListenerRebind(): void;
+  /** Start the keep-alive foreground service (reliability in the background). */
+  startKeepAlive(): void;
   /** Recent notifications the listener saw (diagnostics). */
   getSeenNotifications(): SeenNotification[];
   clearSeenNotifications(): void;

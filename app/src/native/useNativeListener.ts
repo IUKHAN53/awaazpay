@@ -82,10 +82,12 @@ export function useNativeListener() {
       try {
         if (!listener.isNotificationAccessGranted()) {
           status = 'notification-access-off';
-        } else if (!listener.isListenerConnected()) {
-          // Access granted but the service hasn't bound yet — nudge Android to
-          // (re)bind so it starts receiving without needing an app/phone restart.
-          listener.requestListenerRebind();
+        } else {
+          // Keep the process alive (reliability) and ensure the listener is bound.
+          listener.startKeepAlive();
+          if (!listener.isListenerConnected()) {
+            listener.requestListenerRebind();
+          }
         }
       } catch {}
       setStatus(status);

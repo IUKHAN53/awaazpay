@@ -13,6 +13,8 @@ const { AndroidConfig, withAndroidManifest } = require('expo/config-plugins');
 
 const LISTENER_SERVICE = 'pk.awaazpay.app.listener.PaymentNotificationListener';
 const SMS_RECEIVER = 'pk.awaazpay.app.listener.PaymentSmsReceiver';
+const KEEPALIVE_SERVICE = 'pk.awaazpay.app.listener.KeepAliveService';
+const BOOT_RECEIVER = 'pk.awaazpay.app.listener.BootReceiver';
 const FULL_FLAVOR = process.env.AWAAZPAY_FLAVOR === 'full';
 
 function ensurePermission(manifest, name) {
@@ -32,8 +34,9 @@ module.exports = function withPaymentListener(config) {
 
     ensurePermission(manifest, 'android.permission.POST_NOTIFICATIONS');
     ensurePermission(manifest, 'android.permission.FOREGROUND_SERVICE');
-    ensurePermission(manifest, 'android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK');
+    ensurePermission(manifest, 'android.permission.FOREGROUND_SERVICE_SPECIAL_USE');
     ensurePermission(manifest, 'android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS');
+    ensurePermission(manifest, 'android.permission.RECEIVE_BOOT_COMPLETED');
     if (FULL_FLAVOR) {
       ensurePermission(manifest, 'android.permission.RECEIVE_SMS');
     }
@@ -54,6 +57,49 @@ module.exports = function withPaymentListener(config) {
           {
             action: [
               { $: { 'android:name': 'android.service.notification.NotificationListenerService' } },
+            ],
+          },
+        ],
+      });
+    }
+
+    // Keep-alive foreground service — keeps the process (and thus the listener)
+    // alive so payments are heard reliably in the background.
+    const hasKeepAlive = app.service.some((s) => s.$['android:name'] === KEEPALIVE_SERVICE);
+    if (!hasKeepAlive) {
+      app.service.push({
+        $: {
+          'android:name': KEEPALIVE_SERVICE,
+          'android:exported': 'false',
+          'android:foregroundServiceType': 'specialUse',
+        },
+        property: [
+          {
+            $: {
+              'android:name': 'android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE',
+              'android:value':
+                'Keeps the payment notification listener alive so incoming shop payments are announced aloud in real time.',
+            },
+          },
+        ],
+      });
+    }
+
+    // Boot receiver — restart the keep-alive service after a reboot.
+    app.receiver = app.receiver || [];
+    const hasBoot = app.receiver.some((r) => r.$['android:name'] === BOOT_RECEIVER);
+    if (!hasBoot) {
+      app.receiver.push({
+        $: {
+          'android:name': BOOT_RECEIVER,
+          'android:exported': 'true',
+        },
+        'intent-filter': [
+          {
+            action: [
+              { $: { 'android:name': 'android.intent.action.BOOT_COMPLETED' } },
+              { $: { 'android:name': 'android.intent.action.LOCKED_BOOT_COMPLETED' } },
+              { $: { 'android:name': 'android.intent.action.QUICKBOOT_POWERON' } },
             ],
           },
         ],

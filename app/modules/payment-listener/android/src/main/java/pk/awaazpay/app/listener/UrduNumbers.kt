@@ -32,8 +32,9 @@ object UrduNumbers {
     var n = if (amount < 0) -amount else amount
     if (n == 0L) return ONES[0]
 
-    // Idiomatic "N sau" for clean hundreds between 1,000 and 9,999 (1200 = بارہ سو)
-    if (n in 1000..9999 && n % 100 == 0L) {
+    // Idiomatic "N sau" ONLY for 1100..1900 (1500 = پندرہ سو). Round thousands and
+    // larger use standard ہزار decomposition — so 7000 = سات ہزار (NOT ستر سو).
+    if (n in 1100..1900 && n % 100 == 0L) {
       return "${ONES[(n / 100).toInt()]} سو"
     }
 

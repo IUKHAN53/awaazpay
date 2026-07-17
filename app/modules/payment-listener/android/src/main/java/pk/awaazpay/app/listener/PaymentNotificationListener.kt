@@ -131,6 +131,9 @@ class PaymentNotificationListener : NotificationListenerService() {
     super.onListenerConnected()
     connected = true
     Log.i(TAG, "Listener connected")
+    // Self-heal: whenever the system (re)binds us, keep the process alive so we
+    // stay bound. Best-effort — background FGS starts can be blocked on 12+.
+    KeepAliveService.start(this)
   }
 
   override fun onListenerDisconnected() {

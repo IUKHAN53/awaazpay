@@ -33,8 +33,9 @@ export function amountToUrduWords(amount: number): string {
   const n = Math.floor(Math.abs(amount));
   if (n === 0) return ONES[0];
 
-  // Idiomatic "N sau" for 1,000..9,999 when it is a clean hundred (e.g. 1200 = بارہ سو)
-  if (n >= 1000 && n < 10000 && n % 100 === 0) {
+  // Idiomatic "N sau" ONLY for 1100..1900 (e.g. 1500 = پندرہ سو). Round thousands
+  // and larger use standard ہزار decomposition — so 7000 = سات ہزار (NOT ستر سو).
+  if (n >= 1100 && n <= 1900 && n % 100 === 0) {
     return `${below100(n / 100)} سو`;
   }
 

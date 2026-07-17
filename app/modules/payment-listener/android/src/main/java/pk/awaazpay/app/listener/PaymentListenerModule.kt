@@ -93,6 +93,11 @@ class PaymentListenerModule : Module() {
       PaymentNotificationListener.connected
     }
 
+    /** Start the keep-alive foreground service so the listener survives in the background. */
+    Function("startKeepAlive") {
+      KeepAliveService.start(context)
+    }
+
     /**
      * Force Android to (re)bind the listener. Fixes the common case where the
      * service doesn't start receiving immediately after access is first granted
