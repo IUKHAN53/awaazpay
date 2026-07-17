@@ -25,8 +25,9 @@ class PaymentListenerModule : Module() {
     Events("onPayment")
 
     OnCreate {
-      // While JS is alive, deliver payments as events
-      PaymentNotificationListener.jsEmitter = { source, amount, payer, receivedAt ->
+      // While JS is alive, deliver payments as events (for the live overlay).
+      // The payment is ALSO persisted natively, so records never depend on this.
+      PaymentNotificationListener.jsEmitter = { source, amount, payer, receivedAt, txnId ->
         try {
           sendEvent(
             "onPayment",
@@ -34,6 +35,7 @@ class PaymentListenerModule : Module() {
               "source" to source,
               "amount" to amount,
               "payer" to payer,
+              "txnId" to txnId,
               "receivedAt" to receivedAt,
             ),
           )
@@ -168,6 +170,7 @@ class PaymentListenerModule : Module() {
           "source" to o.getString("source"),
           "amount" to o.getLong("amount"),
           "payer" to o.getString("payer"),
+          "txnId" to o.optString("txnId", ""),
           "receivedAt" to o.getLong("receivedAt"),
         )
       }

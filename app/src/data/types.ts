@@ -9,6 +9,18 @@ export interface Payment {
   amount: number;
   /** Epoch millis */
   receivedAt: number;
+  /** Transaction id from the message (stable dedupe key), if any. */
+  txnId?: string;
+}
+
+/** Stable key to dedupe the same payment arriving via live event + drained store. */
+export function paymentKey(p: {
+  source: string;
+  amount: number;
+  receivedAt: number;
+  txnId?: string;
+}): string {
+  return p.txnId ? `txn:${p.txnId}` : `k:${p.source}:${p.amount}:${p.receivedAt}`;
 }
 
 export type VoiceLanguage = 'ur' | 'en';

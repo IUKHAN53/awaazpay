@@ -8,6 +8,8 @@ data class ParsedPayment(
   val amount: Long,
   val payer: String,
   val raw: String,
+  /** Trx ID / TID from the message — stable key for dedupe across live + drained. */
+  val txnId: String? = null,
 )
 
 /**
@@ -112,7 +114,8 @@ class PaymentParser(templatesJson: String? = null) {
       val payer = if (p.payerGroup > 0) {
         m.groupValues.getOrNull(p.payerGroup)?.trim().takeUnless { it.isNullOrBlank() }
       } else null
-      return ParsedPayment(template.source, amount, payer ?: "Customer", text)
+      val txnId = TXN_ID.find(text)?.groupValues?.getOrNull(1)
+      return ParsedPayment(template.source, amount, payer ?: "Customer", text, txnId)
     }
     return null
   }
@@ -156,6 +159,12 @@ class PaymentParser(templatesJson: String? = null) {
   }
 
   companion object {
+    /** Extracts the transaction id: "Trx ID: 123", "TID:123", "Transaction ID 123". */
+    private val TXN_ID = Regex(
+      "(?:Trx\\s*ID|TID|Transaction\\s*ID|Trans\\s*ID)[:\\s#]*([A-Za-z0-9]{4,})",
+      RegexOption.IGNORE_CASE,
+    )
+
     /** Matches outgoing / failed / reversed transactions — never announce these. */
     private val OUTGOING_OR_FAILED = Regex(
       "sent to|has been sent|debited|payment sent|sent successfully|could not be processed|" +

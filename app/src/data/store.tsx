@@ -5,6 +5,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import * as Speech from 'expo-speech';
@@ -12,6 +13,7 @@ import { PaymentListener } from '../../modules/payment-listener';
 import {
   ListenerStatus,
   Payment,
+  paymentKey,
   PaymentSource,
   Settings,
   SOURCE_META,
@@ -69,6 +71,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<ListenerStatus>('listening');
   const [announcing, setAnnouncing] = useState<Payment | null>(null);
   const [templatesJson, setTemplatesJsonState] = useState<string | null>(null);
+  // Keys of payments already recorded — dedupes the same payment arriving both
+  // as a live event and via the drained native store.
+  const seenKeys = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     (async () => {
@@ -80,7 +85,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           AsyncStorage.getItem(TEMPLATES_KEY),
         ]);
         if (s) setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(s) });
-        if (p) setPayments(JSON.parse(p));
+        if (p) {
+          const loaded: Payment[] = JSON.parse(p);
+          setPayments(loaded);
+          loaded.forEach((pay) => seenKeys.current.add(paymentKey(pay)));
+        }
         if (st) setStaff(JSON.parse(st));
         if (tpl) setTemplatesJsonState(tpl);
       } finally {
@@ -131,6 +140,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         receivedAt: opts?.receivedAt ?? Date.now(),
       };
+
+      // Dedupe: the same payment can arrive both as a live event and via the
+      // drained native store. Skip everything (record, overlay, sync) if seen.
+      const key = paymentKey(payment);
+      if (seenKeys.current.has(key)) return;
+      seenKeys.current.add(key);
+
       setPayments((prev) => {
         const next = [payment, ...prev].sort((a, b) => b.receivedAt - a.receivedAt);
         AsyncStorage.setItem(PAYMENTS_KEY, JSON.stringify(next.slice(0, 500))).catch(() => {});

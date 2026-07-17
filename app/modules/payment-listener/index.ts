@@ -4,6 +4,7 @@ export interface NativePaymentEvent {
   source: string;
   amount: number;
   payer: string;
+  txnId: string;
   receivedAt: number;
 }
 

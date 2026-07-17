@@ -23,7 +23,7 @@ class PaymentNotificationListener : NotificationListenerService() {
     @Volatile var connected: Boolean = false
 
     /** Set by PaymentListenerModule while the RN runtime is alive. */
-    @Volatile var jsEmitter: ((source: String, amount: Long, payer: String, receivedAt: Long) -> Boolean)? = null
+    @Volatile var jsEmitter: ((source: String, amount: Long, payer: String, receivedAt: Long, txnId: String) -> Boolean)? = null
 
     /**
      * SMS/RCS apps that relay wallet alerts as notifications. Reading these
@@ -70,8 +70,11 @@ class PaymentNotificationListener : NotificationListenerService() {
       Log.i(TAG, "Payment detected: ${payment.source} Rs ${payment.amount}")
       val receivedAt = System.currentTimeMillis()
       Announcer.announce(context, payment, config.language, config.repeat, config.volume)
-      val delivered = jsEmitter?.invoke(payment.source, payment.amount, payment.payer, receivedAt) ?: false
-      if (!delivered) PaymentStore.appendPending(context, payment, receivedAt)
+      // ALWAYS persist durably so the payment shows in History/Reports even when
+      // it arrived in the background (a live JS event may never be processed).
+      PaymentStore.appendPending(context, payment, receivedAt)
+      // Signal the live UI (immediate overlay + list update) if JS is running.
+      jsEmitter?.invoke(payment.source, payment.amount, payment.payer, receivedAt, payment.txnId ?: "")
       return payment
     }
   }

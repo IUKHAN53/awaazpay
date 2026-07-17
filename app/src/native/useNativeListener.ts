@@ -20,26 +20,41 @@ function toSource(s: string): PaymentSource {
 export function useNativeListener() {
   const { settings, addPayment, setStatus, ready, templatesJson } = useApp();
 
-  // Drain pending + subscribe to live events
+  // Drain the native store (every detected payment is persisted there) on mount
+  // AND whenever the app returns to the foreground — this is what makes payments
+  // that arrived in the background show up in History/Reports. Dedupe in
+  // addPayment prevents doubles with the live event.
   useEffect(() => {
-    if (!PaymentListener || !ready) return;
+    const listener = PaymentListener;
+    if (!listener || !ready) return;
 
-    try {
-      const pending = PaymentListener.drainPendingPayments();
-      for (const p of pending) {
-        // Announced natively already — record silently into history
-        addPayment({ source: toSource(p.source), payer: p.payer, amount: p.amount }, { silent: true, receivedAt: p.receivedAt });
-      }
-    } catch {}
+    const drain = () => {
+      try {
+        for (const p of listener.drainPendingPayments()) {
+          addPayment(
+            { source: toSource(p.source), payer: p.payer, amount: p.amount, txnId: p.txnId || undefined },
+            { silent: true, receivedAt: p.receivedAt },
+          );
+        }
+      } catch {}
+    };
 
-    const sub = PaymentListener.addListener('onPayment', (p) => {
-      // Announced natively — record + show the moment, but don't re-speak
+    drain();
+
+    const sub = listener.addListener('onPayment', (p) => {
+      // Live event — record + show the moment (not re-spoken; native announced).
       addPayment(
-        { source: toSource(p.source), payer: p.payer, amount: p.amount },
+        { source: toSource(p.source), payer: p.payer, amount: p.amount, txnId: p.txnId || undefined },
         { silent: true, receivedAt: p.receivedAt, showOverlay: true },
       );
     });
-    return () => sub.remove();
+    const appStateSub = AppState.addEventListener('change', (s) => {
+      if (s === 'active') drain();
+    });
+    return () => {
+      sub.remove();
+      appStateSub.remove();
+    };
   }, [ready, addPayment]);
 
   // Push settings to native config

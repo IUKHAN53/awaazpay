@@ -119,6 +119,7 @@ object PaymentStore {
         .put("source", p.source)
         .put("amount", p.amount)
         .put("payer", p.payer)
+        .put("txnId", p.txnId ?: "")
         .put("receivedAt", receivedAt),
     )
     // Cap growth

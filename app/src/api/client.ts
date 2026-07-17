@@ -120,6 +120,7 @@ export const backend = {
         source: p.source,
         payer: p.payer,
         amount: p.amount,
+        txn_id: p.txnId ?? null,
         received_at: new Date(p.receivedAt).toISOString(),
       },
     });
