@@ -40,32 +40,13 @@ class PaymentSmsReceiver : BroadcastReceiver() {
     val body = messages.joinToString("") { it.messageBody ?: "" }
     if (body.isBlank()) return
 
-    val config = PaymentStore.loadConfig(context)
-    val parser = PaymentParser(config.templatesJson)
-    parser.setExtraSenders(config.extraSenders)
-
-    // parseSms enforces the trusted-sender allowlist + personal-number rejection
-    val payment = parser.parseSms(sender, body)
+    // Shared pipeline: anti-scam sender check → parse → dedupe → announce →
+    // durable persist + emit (identical to notification-relayed SMS).
+    val payment = PaymentNotificationListener.processSmsRelay(context, sender, body)
     if (payment == null) {
       Log.i(TAG, "SMS from '$sender' not a trusted payment — ignored")
-      return
-    }
-
-    if (payment.source !in config.enabledSources) return
-    if (PaymentStore.isDuplicate(context, payment)) {
-      Log.i(TAG, "Duplicate payment skipped: ${payment.source} ${payment.amount}")
-      return
-    }
-
-    Log.i(TAG, "Trusted SMS payment: ${payment.source} Rs ${payment.amount} from $sender")
-    val receivedAt = System.currentTimeMillis()
-
-    Announcer.announce(context, payment, config.language, config.repeat, config.volume)
-
-    val delivered = PaymentNotificationListener.jsEmitter
-      ?.invoke(payment.source, payment.amount, payment.payer, receivedAt) ?: false
-    if (!delivered) {
-      PaymentStore.appendPending(context, payment, receivedAt)
+    } else {
+      Log.i(TAG, "Trusted SMS payment: ${payment.source} Rs ${payment.amount} from $sender")
     }
   }
 }
