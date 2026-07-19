@@ -186,8 +186,8 @@ class PaymentParser(templatesJson: String? = null) {
           "packages": ["pk.com.telenor.phoenix", "com.telenor.phoenix", "pk.com.telenor.easypaisa"],
           "senders": ["Easypaisa", "easypaisa", "3737"],
           "patterns": [
-            { "regex": "(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?\\s+(?:has\\s+been\\s+)?(?:received|credited|deposited).{0,70}?from\\s+([A-Za-z\\u0600-\\u06FF][A-Za-z\\u0600-\\u06FF ]{1,40}?)(?:\\s+in\\s|\\s+via|\\s+on\\s|\\s+account|\\.|,|$)", "amountGroup": 1, "payerGroup": 2 },
-            { "regex": "(?:received|credited|deposited).{0,25}?(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?.{0,60}?from\\s+([A-Za-z\\u0600-\\u06FF][A-Za-z\\u0600-\\u06FF ]{1,40}?)(?:\\s+in\\s|\\s+via|\\s+on\\s|\\.|,|$)", "amountGroup": 1, "payerGroup": 2 },
+            { "regex": "(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?\\s+(?:has\\s+been\\s+)?(?:received|credited|deposited).{0,70}?from\\s+([A-Za-z\\u0600-\\u06FF][A-Za-z\\u0600-\\u06FF ]{1,40}?)(?:\\s+in\\s|\\s+via|\\s+on\\s|\\s+with\\s|\\s+of\\s|\\s+account|\\.|,|$)", "amountGroup": 1, "payerGroup": 2 },
+            { "regex": "(?:received|credited|deposited).{0,25}?(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?.{0,60}?from\\s+([A-Za-z\\u0600-\\u06FF][A-Za-z\\u0600-\\u06FF ]{1,40}?)(?:\\s+in\\s|\\s+via|\\s+on\\s|\\s+with\\s|\\s+of\\s|\\.|,|$)", "amountGroup": 1, "payerGroup": 2 },
             { "regex": "(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?\\s+(?:has\\s+been\\s+)?(?:received|credited|deposited)", "amountGroup": 1, "payerGroup": 0 },
             { "regex": "(?:received|credited|deposited).{0,60}?(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?", "amountGroup": 1, "payerGroup": 0 }
           ]
@@ -197,8 +197,8 @@ class PaymentParser(templatesJson: String? = null) {
           "packages": ["com.techlogix.mobilinkcustomer", "com.jazzcash.consumer", "com.jazz.jazzcash"],
           "senders": ["JazzCash", "Jazz Cash", "8558"],
           "patterns": [
-            { "regex": "(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?\\s+(?:has\\s+been\\s+)?(?:received|credited|deposited).{0,70}?from\\s+([A-Za-z\\u0600-\\u06FF][A-Za-z\\u0600-\\u06FF ]{1,40}?)(?:\\s+in\\s|\\s+via|\\s+on\\s|\\s+account|\\.|,|$)", "amountGroup": 1, "payerGroup": 2 },
-            { "regex": "(?:received|credited|deposited).{0,25}?(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?.{0,60}?from\\s+([A-Za-z\\u0600-\\u06FF][A-Za-z\\u0600-\\u06FF ]{1,40}?)(?:\\s+in\\s|\\s+via|\\s+on\\s|\\.|,|$)", "amountGroup": 1, "payerGroup": 2 },
+            { "regex": "(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?\\s+(?:has\\s+been\\s+)?(?:received|credited|deposited).{0,70}?from\\s+([A-Za-z\\u0600-\\u06FF][A-Za-z\\u0600-\\u06FF ]{1,40}?)(?:\\s+in\\s|\\s+via|\\s+on\\s|\\s+with\\s|\\s+of\\s|\\s+account|\\.|,|$)", "amountGroup": 1, "payerGroup": 2 },
+            { "regex": "(?:received|credited|deposited).{0,25}?(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?.{0,60}?from\\s+([A-Za-z\\u0600-\\u06FF][A-Za-z\\u0600-\\u06FF ]{1,40}?)(?:\\s+in\\s|\\s+via|\\s+on\\s|\\s+with\\s|\\s+of\\s|\\.|,|$)", "amountGroup": 1, "payerGroup": 2 },
             { "regex": "(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?\\s+(?:has\\s+been\\s+)?(?:received|credited|deposited)", "amountGroup": 1, "payerGroup": 0 },
             { "regex": "(?:received|credited|deposited).{0,60}?(?:Rs|PKR|RS)\\.?\\s*([\\d,]+)(?:\\.\\d+)?", "amountGroup": 1, "payerGroup": 0 }
           ]
